@@ -62,6 +62,20 @@
 #define YEPKIT_USB_ENDPOINT_IN 0x81
 #define YEPKIT_USB_INTERRUPT_TIMEOUT 5000 // in milliseconds
 
+// ****************************************************************************
+// ****************************************************************************
+// ****************************************************************************
+// USB Mining Watchdog relay (VID=0x5131, PID=0x2007)
+// Protocol reference: Relay/usb-watchdog-control-master/USBWatchdogControl/USBWatchdog.cs
+#define USB_WDG_RELAY_VENDOR_ID            0x5131
+#define USB_WDG_RELAY_PRODUCT_ID           0x2007
+#define USB_WDG_RELAY_ENDPOINT_OUT         0x01
+#define USB_WDG_RELAY_ENDPOINT_IN          0x81
+#define USB_WDG_RELAY_INTERRUPT_TIMEOUT    5000   // milliseconds
+#define USB_WDG_RELAY_RESET_CMD            0x80
+#define USB_WDG_RELAY_HEARTBEAT_CMD        0x18
+#define USB_WDG_RELAY_DEFAULT_TIMEOUT_BYTE 0x0D   // heartbeat timeout ~10 s
+
 extern bool activate_primary_relay1_ccc;
 extern bool activate_primary_relay2_ccc;
 extern bool activate_primary_relay3_ccc;

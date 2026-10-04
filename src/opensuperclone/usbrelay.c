@@ -141,6 +141,11 @@ int find_all_usb_devices_ccc(void)
         usb_known_relay_ccc[usb_device_count_ccc] = 1;
       }
 
+      // USB Mining Watchdog
+      if (dev->descriptor.idVendor == USB_WDG_RELAY_VENDOR_ID && dev->descriptor.idProduct == USB_WDG_RELAY_PRODUCT_ID)
+      {
+        usb_known_relay_ccc[usb_device_count_ccc] = 1;
+      }
       // if it is a known usb relay then mark it
       if (dev->descriptor.idVendor == USBMICRO_U451_RELAY_VENDOR_ID && dev->descriptor.idProduct == USBMICRO_U451_RELAY_PRODUCT_ID)
       {
@@ -1607,6 +1612,35 @@ int activate_primary_relay_ccc(void)
       }
     }
   }
+  else if (usbr1_vendor_id_ccc == USB_WDG_RELAY_VENDOR_ID && usbr1_product_id_ccc == USB_WDG_RELAY_PRODUCT_ID)
+  {
+    // Reset the watchdog: sends [0x80, 0x00] and verifies response[1] == 0x00
+    ccc_main_usbbuffer_size_ccc = 2;
+    if (set_main_usb_buffer_ccc())
+    {
+      fprintf(stdout, "Error setting usb buffer\n");
+      return -1;
+    }
+    memset(ccc_usbbuffer_ccc, 0, ccc_main_usbbuffer_size_ccc);
+    ((unsigned char *)ccc_usbbuffer_ccc)[0] = USB_WDG_RELAY_RESET_CMD;
+    ((unsigned char *)ccc_usbbuffer_ccc)[1] = 0x00;
+    if (do_send_usbr_interrupt_write_ccc(USB_WDG_RELAY_ENDPOINT_OUT))
+    {
+      fprintf(stdout, "Error sending usb interrupt write (watchdog reset)\n");
+      return -1;
+    }
+    if (do_send_usbr_interrupt_read_ccc(USB_WDG_RELAY_ENDPOINT_IN))
+    {
+      fprintf(stdout, "Error sending usb interrupt read (watchdog reset)\n");
+      return -1;
+    }
+    if (((unsigned char *)ccc_usbbuffer_ccc)[1] != 0x00)
+    {
+      fprintf(stdout, "USB watchdog reset: unexpected response byte 0x%02x (expected 0x00)\n",
+              ((unsigned char *)ccc_usbbuffer_ccc)[1]);
+      return -1;
+    }
+  }
   else
   {
     fprintf(stdout, "Error: USB relay ID not recognized\n");
@@ -1856,6 +1890,35 @@ int deactivate_primary_relay_ccc(void)
         fprintf(stdout, "Error sending usb interrupt write\n");
         return -1;
       }
+    }
+  }
+  else if (usbr1_vendor_id_ccc == USB_WDG_RELAY_VENDOR_ID && usbr1_product_id_ccc == USB_WDG_RELAY_PRODUCT_ID)
+  {
+    // Heartbeat: sends [0x18, 0x0D] and verifies response[1] == 0x0D
+    ccc_main_usbbuffer_size_ccc = 2;
+    if (set_main_usb_buffer_ccc())
+    {
+      fprintf(stdout, "Error setting usb buffer\n");
+      return -1;
+    }
+    memset(ccc_usbbuffer_ccc, 0, ccc_main_usbbuffer_size_ccc);
+    ((unsigned char *)ccc_usbbuffer_ccc)[0] = USB_WDG_RELAY_HEARTBEAT_CMD;
+    ((unsigned char *)ccc_usbbuffer_ccc)[1] = USB_WDG_RELAY_DEFAULT_TIMEOUT_BYTE;
+    if (do_send_usbr_interrupt_write_ccc(USB_WDG_RELAY_ENDPOINT_OUT))
+    {
+      fprintf(stdout, "Error sending usb interrupt write (watchdog heartbeat)\n");
+      return -1;
+    }
+    if (do_send_usbr_interrupt_read_ccc(USB_WDG_RELAY_ENDPOINT_IN))
+    {
+      fprintf(stdout, "Error sending usb interrupt read (watchdog heartbeat)\n");
+      return -1;
+    }
+    if (((unsigned char *)ccc_usbbuffer_ccc)[1] != USB_WDG_RELAY_DEFAULT_TIMEOUT_BYTE)
+    {
+      fprintf(stdout, "USB watchdog heartbeat: unexpected response byte 0x%02x (expected 0x%02x)\n",
+              ((unsigned char *)ccc_usbbuffer_ccc)[1], USB_WDG_RELAY_DEFAULT_TIMEOUT_BYTE);
+      return -1;
     }
   }
   else
